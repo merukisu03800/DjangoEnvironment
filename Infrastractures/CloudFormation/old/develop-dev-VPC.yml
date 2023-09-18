@@ -1,0 +1,230 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Network For dev-VPC
+
+# Metadata:
+
+Parameters:
+  SystemName:
+    Type: String
+    Default: develop
+    AllowedPattern: '[a-zA-Z0-9-]*'
+  EnvType:
+    Description: Environment type.
+    Type: String
+    Default: dev
+    AllowedValues: [all, dev, stg, prd]
+    ConstraintDescription: must specify all, dev, stg, or prd.
+  VPC1CidrBlock:
+    Type: String
+    Default: "10.0.0.0/16"
+  PrivateSubnet1:
+    Type: String
+    Default: "10.0.0.0/24"
+  PrivateSubnet2:
+    Type: String
+    Default: "10.0.1.0/24"
+  PublicSubnet1:
+    Type: String
+    Default: "10.0.2.0/24"
+  PublicSubnet2:
+    Type: String
+    Default: "10.0.3.0/24"
+
+Mappings: 
+  AzMap: 
+    ap-northeast-1:
+      1st: ap-northeast-1a
+      2nd: ap-northeast-1c
+      3rd: ap-northeast-1d
+
+# Conditions
+
+# Transform
+
+Resources:
+  # Define for VPC
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VPC1CidrBlock
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      InstanceTenancy: default
+      Tags:
+        - Key: Name
+          Value: !Sub
+          - ${SystemName}-${EnvType}-vpc
+          - {SystemName: !Ref SystemName, EnvType: !Ref EnvType}
+        - Key: SystemName
+          Value: !Ref SystemName
+        - Key: EnvType
+          Value: !Ref EnvType
+
+  # Define for PrivateSubnet
+  MyPrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref PrivateSubnet1
+      AvailabilityZone: !FindInMap [AzMap, !Ref AWS::Region, 1st]
+      Tags:
+        - Key: Name
+          Value: !Sub
+          - ${SystemName}-${EnvType}-Private-subnet1
+          - {SystemName: !Ref SystemName, EnvType: !Ref EnvType}
+        - Key: SystemName
+          Value: !Ref SystemName
+        - Key: EnvType
+          Value: !Ref EnvType
+
+  MyPrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref PrivateSubnet2
+      AvailabilityZone: !FindInMap [AzMap, !Ref AWS::Region, 2nd]
+      Tags:
+        - Key: Name
+          Value: !Sub
+          - ${SystemName}-${EnvType}-Private-subnet2
+          - {SystemName: !Ref SystemName, EnvType: !Ref EnvType}
+        - Key: SystemName
+          Value: !Ref SystemName
+        - Key: EnvType
+          Value: !Ref EnvType
+
+  # Define for PublicSubnet
+  MyPublicSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref PublicSubnet1
+      AvailabilityZone: !FindInMap [AzMap, !Ref AWS::Region, 1st]
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub
+          - ${SystemName}-${EnvType}-Public-subnet1
+          - {SystemName: !Ref SystemName, EnvType: !Ref EnvType}
+        - Key: SystemName
+          Value: !Ref SystemName
+        - Key: EnvType
+          Value: !Ref EnvType
+
+  MyPublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref PublicSubnet2
+      AvailabilityZone: !FindInMap [AzMap, !Ref AWS::Region, 2nd]
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub
+          - ${SystemName}-${EnvType}-Public-subnet2
+          - {SystemName: !Ref SystemName, EnvType: !Ref EnvType}
+        - Key: SystemName
+          Value: !Ref SystemName
+        - Key: EnvType
+          Value: !Ref EnvType
+
+  # Define for InternetGateway
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub
+          - ${SystemName}-${EnvType}-igw
+          - {SystemName: !Ref SystemName, EnvType: !Ref EnvType}
+        - Key: SystemName
+          Value: !Ref SystemName
+        - Key: EnvType
+          Value: !Ref EnvType
+
+  # Define for InternetGateway attach to VPC
+  VPCGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  # Define for PublicRouteTable
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub
+          - ${SystemName}-${EnvType}-Public-routetable
+          - {SystemName: !Ref SystemName, EnvType: !Ref EnvType}
+        - Key: SystemName
+          Value: !Ref SystemName
+        - Key: EnvType
+          Value: !Ref EnvType
+
+  # Define for PublicRouteTable Assosiation
+  PublicSubnetRouteTableAssociation1:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref MyPublicSubnet1
+      RouteTableId: !Ref PublicRouteTable
+  PublicSubnetRouteTableAssociation2:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref MyPublicSubnet2
+      RouteTableId: !Ref PublicRouteTable
+
+  # Define for InternetGateway assosiate to PublicRouteTable
+  PublicRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+Outputs:
+  devVPC:
+    Value: !Ref VPC
+    Export:
+      Name: !Sub
+        - ${SystemName}-${EnvType}-vpc
+        - {SystemName: !Ref SystemName, EnvType: !Ref EnvType}
+  VpcCidrBlock:
+    Description: VPC CidrBlock
+    Value: !GetAtt VPC.CidrBlock
+    Export:
+      Name: !Sub
+        - ${SystemName}-${EnvType}-vpc-cidrblock
+        - {SystemName: !Ref SystemName, EnvType: !Ref EnvType}
+  MyPrivateSubnet1:
+    Value: !Ref MyPrivateSubnet1
+    Export:
+      Name: !Sub
+        - ${SystemName}-${EnvType}-Private-subnet1
+        - {SystemName: !Ref SystemName, EnvType: !Ref EnvType}
+  MyPrivateSubnet2:
+    Value: !Ref MyPrivateSubnet2
+    Export:
+      Name: !Sub
+        - ${SystemName}-${EnvType}-Private-subnet2
+        - {SystemName: !Ref SystemName, EnvType: !Ref EnvType}
+  MyPublicSubnet1:
+    Value: !Ref MyPublicSubnet1
+    Export:
+      Name: !Sub
+        - ${SystemName}-${EnvType}-Public-subnet1
+        - {SystemName: !Ref SystemName, EnvType: !Ref EnvType}
+  MyPublicSubnet2:
+    Value: !Ref MyPublicSubnet2
+    Export:
+      Name: !Sub
+        - ${SystemName}-${EnvType}-Public-subnet2
+        - {SystemName: !Ref SystemName, EnvType: !Ref EnvType}
+  PublicRouteTable:
+    Value: !Ref PublicRouteTable
+    Export:
+      Name: !Sub
+        - ${SystemName}-${EnvType}-Public-routetable
+        - {SystemName: !Ref SystemName, EnvType: !Ref EnvType}
