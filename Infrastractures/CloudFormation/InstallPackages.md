@@ -1,4 +1,4 @@
-1. Python3.7.16の最新化
+1. Python3.7.16の最新化、djangoの導入
     openssl1.1の導入(Python3.10からopenssl1.1系必須)
     openssl1.0系の削除
 ```
@@ -26,8 +26,25 @@
     python --version
 ```
 
-2. djangoの導入
+    djangoの導入
 ```
     pip3 install django
+
+```
+
+2. Docker Composeの導入
+```
+sudo yum update -y
+sudo yum install -y docker
+sudo amazon-linux-extras install docker
+
+sudo systemctl enable docker
+sudo systemctl start docker
+```
+
+3. Terraformの導入
+```
+sudo yum update -y
+LATEST_TERRAFORM_VERSION=$(curl -s https://api.github.com/repos/hashicorp/terraform/releases/latest | grep tag_name | cut -d '"' -f 4)
 
 ```
