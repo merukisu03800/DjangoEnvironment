@@ -50,6 +50,14 @@ Resources:
         - arn:aws:iam::aws:policy/AdministratorAccess
       RoleName: 'AWSManagedRoleForEC2'
 
+  IAMInstanceProfileAWSManagedRoleForEC2:
+    Type: "AWS::IAM::InstanceProfile"
+    Properties:
+      Path: "/"
+      InstanceProfileName: !Ref AWSManagedRoleForEC2
+      Roles:
+        - !Ref AWSManagedRoleForEC2
+
   # Define Cloud9
   Cloud9:
     Type: AWS::Cloud9::EnvironmentEC2
